@@ -16,11 +16,14 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -37,17 +40,31 @@ var data map[string]struct {
 	}
 }
 
+var db *sql.DB
+
+const updateQuery = `UPDATE texts SET name=?, desc=? WHERE id=?;`
+
 func main() {
 	flag.StringVar(&lang, "lang", "pt", "output language")
 	flag.Parse()
 
+	if *dbName == "" {
+		fmt.Println("no database specified")
+		os.Exit(1)
+	}
+
 	// load
 
 	f, err := os.Open(*jsonFile)
-	check(err)
+	catch(err)
+	defer f.Close()
 
 	json.NewDecoder(f).Decode(&data)
-	check(err)
+	catch(err)
+
+	db, err = sql.Open("sqlite3", *dbName)
+	catch(err)
+	defer db.Close()
 
 	// parse
 	// TODO: English is a very special case
@@ -55,16 +72,17 @@ func main() {
 	namePrefix := "|" + lang + "_name = "
 	lorePrefix := "|" + lang + "_lore = "
 
-	for _, c := range data {
-		if c.Revisions == nil {
+	for _, card := range data {
+		if card.Revisions == nil {
 			continue
 		}
-		id := extract(c.Revisions[0].Text, "|number = ")
-		name := extract(c.Revisions[0].Text, namePrefix)
-		lore := extract(c.Revisions[0].Text, lorePrefix)
+		text := card.Revisions[0].Text
+		id := strings.TrimLeft(extract(text, "|number = "), "0")
+		name := extract(text, namePrefix)
+		lore := extract(text, lorePrefix)
+
 		dbUpdate(id, name, lore)
 	}
-	fmt.Println("name:", namePrefix, "lore:", lorePrefix)
 }
 
 func extract(source, prefix string) string {
@@ -77,17 +95,18 @@ func extract(source, prefix string) string {
 }
 
 func dbUpdate(id, name, lore string) {
-	// stub
-	fmt.Println("\tid:", id)
-	fmt.Println("\tname:", name)
-	fmt.Println("\tlore:", lore)
+	if (name == "") || (lore == "") {
+		return
+	}
+	fmt.Println("updating", name)
+
+	_, err := db.Exec(updateQuery, name, lore, id)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
-func isEnglish() bool {
-	return lang == ""
-}
-
-func check(err error) {
+func catch(err error) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
