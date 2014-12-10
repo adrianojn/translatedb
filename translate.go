@@ -29,9 +29,8 @@ import (
 var (
 	dbName   = flag.String("db", "", "database to translate")
 	jsonFile = flag.String("using", "wikia.json", "wikia database")
+	lang     string
 )
-
-var lang string
 
 var data map[string]struct {
 	Title     string
@@ -42,16 +41,16 @@ var data map[string]struct {
 
 var db *sql.DB
 
-const updateQuery = `UPDATE texts SET name=?, desc=? WHERE id=?;`
-
 func main() {
-	flag.StringVar(&lang, "lang", "pt", "output language")
+	flag.StringVar(&lang, "lang", "en", "output language")
 	flag.Parse()
 
 	if *dbName == "" {
 		fmt.Println("no database specified")
 		os.Exit(1)
 	}
+
+	isEngligh := lang == "en"
 
 	// load
 
@@ -67,7 +66,6 @@ func main() {
 	defer db.Close()
 
 	// parse
-	// TODO: English is a very special case
 
 	namePrefix := "|" + lang + "_name = "
 	lorePrefix := "|" + lang + "_lore = "
@@ -78,8 +76,15 @@ func main() {
 		}
 		text := card.Revisions[0].Text
 		id := strings.TrimLeft(extract(text, "|number = "), "0")
-		name := extract(text, namePrefix)
-		lore := extract(text, lorePrefix)
+
+		var name, lore string
+		if isEngligh {
+			name = card.Title
+			lore = extract(text, "|lore = ")
+		} else {
+			name = extract(text, namePrefix)
+			lore = extract(text, lorePrefix)
+		}
 
 		dbUpdate(id, name, lore)
 	}
@@ -94,8 +99,14 @@ func extract(source, prefix string) string {
 	return ""
 }
 
+const updateQuery = `UPDATE texts SET name=?, desc=? WHERE id=?;`
+
 func dbUpdate(id, name, lore string) {
+	if id == "" {
+		return
+	}
 	if (name == "") || (lore == "") {
+		fmt.Println("- incomplete", id, name)
 		return
 	}
 	fmt.Println("updating", name)
