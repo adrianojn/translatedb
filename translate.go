@@ -118,10 +118,14 @@ func dbUpdate(id, name, lore string) {
 	}
 }
 
-var re = regexp.MustCompile(`\[\[(.+?)\|?\]\]`)
+var (
+	wikiaRx = regexp.MustCompile(`\[\[(.+?)\|?\]\]`)
+	htmlRx  = regexp.MustCompile(`<.+?>`)
+)
 
 func strip(src string) string {
-	return re.ReplaceAllStringFunc(src, submatch)
+	s := htmlRx.ReplaceAllString(src, "\n")
+	return wikiaRx.ReplaceAllStringFunc(s, submatch)
 }
 
 func submatch(s string) string {
