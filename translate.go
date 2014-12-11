@@ -21,6 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -80,10 +81,10 @@ func main() {
 		var name, lore string
 		if isEngligh {
 			name = card.Title
-			lore = extract(text, "|lore = ")
+			lore = strip(extract(text, "|lore = "))
 		} else {
 			name = extract(text, namePrefix)
-			lore = extract(text, lorePrefix)
+			lore = strip(extract(text, lorePrefix))
 		}
 
 		dbUpdate(id, name, lore)
@@ -115,6 +116,20 @@ func dbUpdate(id, name, lore string) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+var re = regexp.MustCompile(`\[\[(.+?)\|?\]\]`)
+
+func strip(src string) string {
+	return re.ReplaceAllStringFunc(src, submatch)
+}
+
+func submatch(s string) string {
+	i := strings.Index(s, "|")
+	if i < 0 {
+		return s[2 : len(s)-2]
+	}
+	return s[i+1 : len(s)-2]
 }
 
 func catch(err error) {
