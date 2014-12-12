@@ -83,7 +83,7 @@ func main() {
 			name = card.Title
 			lore = strip(extract(text, "|lore = "))
 		} else {
-			name = extract(text, namePrefix)
+			name = strip(extract(text, namePrefix))
 			lore = strip(extract(text, lorePrefix))
 		}
 
@@ -107,7 +107,7 @@ func dbUpdate(id, name, lore string) {
 		return
 	}
 	if (name == "") || (lore == "") {
-		fmt.Println("- incomplete", id, name)
+		fmt.Println("incomplete", id, name)
 		return
 	}
 	fmt.Println("updating", name)
@@ -119,13 +119,15 @@ func dbUpdate(id, name, lore string) {
 }
 
 var (
-	wikiaRx = regexp.MustCompile(`\[\[(.+?)\|?\]\]`)
-	htmlRx  = regexp.MustCompile(`<.+?>`)
+	htmlRegex = regexp.MustCompile(`<.+?>`)
+	rubyRegex = regexp.MustCompile(`\{\{.+?\}\}`)
+	wikiRegex = regexp.MustCompile(`\[\[.+?\]\]`)
 )
 
 func strip(src string) string {
-	s := htmlRx.ReplaceAllString(src, "\n")
-	return wikiaRx.ReplaceAllStringFunc(s, submatch)
+	s := htmlRegex.ReplaceAllString(src, "\n")
+	s = wikiRegex.ReplaceAllStringFunc(s, submatch)
+	return rubyRegex.ReplaceAllStringFunc(s, submatchRuby)
 }
 
 func submatch(s string) string {
@@ -134,6 +136,12 @@ func submatch(s string) string {
 		return s[2 : len(s)-2]
 	}
 	return s[i+1 : len(s)-2]
+}
+
+func submatchRuby(s string) string {
+	a := strings.Index(s, "|")
+	b := strings.LastIndex(s, "|")
+	return s[a+1 : b]
 }
 
 func catch(err error) {
