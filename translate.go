@@ -100,7 +100,7 @@ func extract(source, prefix string) string {
 	return ""
 }
 
-const updateQuery = `UPDATE texts SET name=?, desc=? WHERE id=?;`
+const updateQuery = `UPDATE texts SET name=?, desc=? WHERE id>=? AND id <(? + 6);`
 
 func dbUpdate(id, name, lore string) {
 	if id == "" {
@@ -112,7 +112,7 @@ func dbUpdate(id, name, lore string) {
 	}
 	fmt.Println("updating", name)
 
-	_, err := db.Exec(updateQuery, name, lore, id)
+	_, err := db.Exec(updateQuery, name, lore, id, id)
 	if err != nil {
 		fmt.Println(err)
 	}
