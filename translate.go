@@ -100,7 +100,10 @@ func extract(source, prefix string) string {
 	return ""
 }
 
-const updateQuery = `UPDATE texts SET name=?, desc=? WHERE id>=? AND id <(? + 6);`
+const updateQuery = `
+UPDATE texts SET name=?, desc=? WHERE id IN
+  (SELECT id FROM datas WHERE id=? OR
+    (alias=? AND id > alias AND id - alias < 10));`
 
 func dbUpdate(id, name, lore string) {
 	if id == "" {
