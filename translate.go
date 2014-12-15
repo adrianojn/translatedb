@@ -105,15 +105,28 @@ UPDATE texts SET name=?, desc=? WHERE id IN
   (SELECT id FROM datas WHERE id=? OR
     (alias=? AND id > alias AND id - alias < 10));`
 
+const updatePartialQuery = `
+UPDATE texts SET name=? WHERE id IN
+  (SELECT id FROM datas WHERE id=? OR
+    (alias=? AND id > alias AND id - alias < 10));`
+
 func dbUpdate(id, name, lore string) {
 	if id == "" {
 		return
 	}
-	if (name == "") || (lore == "") {
-		fmt.Println("incomplete", id, name)
+	if name == "" {
+		fmt.Println("incomplete", id)
 		return
 	}
-	fmt.Println("updating", name)
+	if lore == "" {
+		fmt.Println("incomplete", id, name)
+		_, err := db.Exec(updatePartialQuery, name, id, id)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+		return
+	}
 
 	_, err := db.Exec(updateQuery, name, lore, id, id)
 	if err != nil {
