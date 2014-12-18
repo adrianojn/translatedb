@@ -90,7 +90,7 @@ func main() {
 			pend = strip(extract(text, pendPrefix))
 		}
 		if pend != "" {
-			lore = "[Pendulum Effect: ]" + pendulum + "\r\n[Monster Effect: ]" + lore
+			lore = "[Pendulum Effect: ]" + pend + "\r\n[Monster Effect: ]" + lore
 		}
 
 		dbUpdate(id, name, lore)
