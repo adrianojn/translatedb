@@ -70,6 +70,7 @@ func main() {
 
 	namePrefix := "|" + lang + "_name = "
 	lorePrefix := "|" + lang + "_lore = "
+	pendPrefix := "|" + lang + "_pendulum_effect = "
 
 	for _, card := range data {
 		if card.Revisions == nil {
@@ -78,13 +79,18 @@ func main() {
 		text := card.Revisions[0].Text
 		id := strings.TrimLeft(extract(text, "|number = "), "0")
 
-		var name, lore string
+		var name, lore, pend string
 		if isEngligh {
 			name = card.Title
 			lore = strip(extract(text, "|lore = "))
+			pend = strip(extract(text, "|pendulum_effect = "))
 		} else {
 			name = strip(extract(text, namePrefix))
 			lore = strip(extract(text, lorePrefix))
+			pend = strip(extract(text, pendPrefix))
+		}
+		if pend != "" {
+			lore = "[Pendulum Effect: ]" + pendulum + "\r\n[Monster Effect: ]" + lore
 		}
 
 		dbUpdate(id, name, lore)
